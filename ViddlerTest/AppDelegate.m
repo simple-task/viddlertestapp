@@ -7,6 +7,7 @@
 //
 
 #import "AppDelegate.h"
+#import "Logger.h"
 
 @interface AppDelegate ()
 
@@ -17,6 +18,9 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     // Override point for customization after application launch.
+    
+    [Logger startLogging];
+    
     return YES;
 }
 
@@ -40,6 +44,7 @@
 
 - (void)applicationWillTerminate:(UIApplication *)application {
     // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
+    [Logger finishLogging];
 }
 
 @end

@@ -13,12 +13,18 @@
 #import "ViddlerManager.h"
 #import <MessageUI/MFMailComposeViewController.h>
 #import <MBProgressHUD/MBProgressHUD.h>
+#import "Logger.h"
+
+static const int numberOfRepeats = 10;
+static const int period = 600;
 
 @interface ViewController () <UIImagePickerControllerDelegate, UINavigationControllerDelegate, MFMailComposeViewControllerDelegate>
 {
     AVAsset *curentAsset;
     NSString *assetUrl;
     MFMailComposeViewController *controller;
+    NSTimer *uploadTimer;
+    int counter;
 }
 
 - (IBAction)chooseVideoTouched:(id)sender;
@@ -42,6 +48,7 @@
     self.postToViddlerButton.enabled = NO;
     self.statusLabel.text = @"";
     [[ViddlerManager instance] login];
+    counter = 0;
 }
 
 - (void)didReceiveMemoryWarning
@@ -129,15 +136,32 @@
 - (IBAction)postToViddlerTouched:(id)sender
 {
     self.postToViddlerButton.enabled = NO;
+    NSRunLoop *runloop = [NSRunLoop currentRunLoop];
+    uploadTimer = [NSTimer timerWithTimeInterval:period target:self selector:@selector(post) userInfo:nil repeats:YES];
+    [runloop addTimer:uploadTimer forMode:NSRunLoopCommonModes];
+    [runloop addTimer:uploadTimer forMode:UITrackingRunLoopMode];
+    [self post];
+}
+
+- (void)post
+{
+    if(counter >= numberOfRepeats)
+    {
+        [uploadTimer invalidate];
+        uploadTimer = nil;
+        UIAlertView *av = [[UIAlertView alloc] initWithTitle:@"Finished" message:@"Uplaod to viddler finished." delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil];
+        [av show];
+        return;
+    }
+    
     NSDate *start = [NSDate date];
-    [MBProgressHUD showHUDAddedTo:self.view animated:YES];
     [[ViddlerManager instance] postVideo:[NSURL fileURLWithPath:assetUrl] withSuccess:^(NSString *message) {
         NSDate *methodFinish = [NSDate date];
         NSTimeInterval executionTime = [methodFinish timeIntervalSinceDate:start];
         NSString *finalMessage = [NSString stringWithFormat:@"%@ Execution time: %f. Video file size: %@. Video length: %@", message, executionTime, self.sizeLabel.text, self.durationLabel.text];
-        [MBProgressHUD hideHUDForView:self.view animated:YES];
-        self.postToViddlerButton.enabled = YES;
-        [self performSelectorOnMainThread:@selector(sendMail:) withObject:finalMessage waitUntilDone:NO];
+        
+        LogInfo(@"Pass %d: %@", counter, finalMessage);
+        counter++;
     }];
 }
 
